@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-s3$@rvc5b4@e*8tp(trk!b#3-!5)!yyzai-77re9h4_rs)8zc-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['diginus.web.id', 'www.diginus.web.id', 'localhost']
 
 
 # Application definition
