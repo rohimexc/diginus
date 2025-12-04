@@ -7,9 +7,10 @@ from django.urls import path, include  # ← tambahkan include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('landingpage.urls')),  # ← tambahkan ini
+    path('', include('landingpage.urls')),
+    path('program/', include('program.urls')),
 ]
 
 # Tambahkan ini hanya saat development
-# if settings.DEBUG:
-#     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

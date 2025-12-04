@@ -1,0 +1,376 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Program Management</title>
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- AOS Animations -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+  <!-- Custom Theme -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#002873',
+            accent: '#0c45ff',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    /* Custom Tailwind Colors */
+    .bg-primary { background-color: #002873; }
+    .bg-accent { background-color: #0c45ff; }
+    .text-primary { color: #002873; }
+    .text-accent { color: #0c45ff; }
+    .border-primary { border-color: #002873; }
+    .border-accent { border-color: #0c45ff; }
+    
+    /* Hover effects untuk table row */
+    .table-row-hover:hover {
+      background-color: #f0f4ff;
+      transform: scale(1.01);
+      transition: all 0.3s ease;
+    }
+    
+    /* Card hover effect untuk mobile */
+    .card-hover:hover {
+      box-shadow: 0 10px 25px rgba(0, 40, 115, 0.15);
+      transform: translateY(-2px);
+      transition: all 0.3s ease;
+    }
+    
+    /* Loading spinner */
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #0c45ff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* DataTables custom styling */
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+      background: #0c45ff !important;
+      color: white !important;
+      border-color: #0c45ff !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+      background: #002873 !important;
+      color: white !important;
+      border-color: #002873 !important;
+    }
+    
+    /* Preview image styling */
+    #preview-thumbnail {
+      max-width: 200px;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-full"><!-- Header -->
+  <header class="bg-primary text-white shadow-lg" data-aos="fade-down">
+   <div class="container mx-auto px-4 py-6">
+    <h1 class="text-3xl font-bold">Program Management</h1>
+    <p class="text-gray-200 mt-1">Kelola data program courses dan services</p>
+   </div>
+  </header><!-- Main Content -->
+
+    <!-- Action Buttons -->
+  <main class="container mx-auto px-4 py-8"><!-- Card Container -->
+   <div class="bg-white rounded-lg shadow-lg p-6" data-aos="fade-up" data-aos-duration="800"><!-- Action Buttons -->
+    <div class="flex flex-wrap gap-3 mb-6"><button id="btn-create" class="bg-accent hover:bg-blue-700 text-white px-4 py-2 rounded shadow hover:shadow-md transition inline-flex items-center">
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg> Tambah Program </button>
+     <form id="form-import" class="inline-flex" method="post" enctype="multipart/form-data">
+      {% csrf_token %} <label class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded cursor-pointer shadow hover:shadow-md transition inline-flex items-center">
+       <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+       </svg> Import <input type="file" name="import_file" accept=".xlsx,.xls,.csv" class="hidden" id="file-import"> </label>
+     </form><a href="{% url 'program:export' %}" class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded shadow hover:shadow-md transition inline-flex items-center">
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg> Export (.xlsx) </a>
+    </div><!-- DataTable Desktop View -->
+    <div class="hidden md:block overflow-hidden rounded-lg border border-gray-200" data-aos="fade-up" data-aos-delay="200">
+     <table id="program-table" class="min-w-full w-full divide-y divide-gray-200">
+      <thead class="bg-gradient-to-r from-primary to-accent text-white">
+       <tr>
+        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Nama</th>
+        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Jenis</th>
+        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Harga</th>
+        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Level</th>
+        <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">Aksi</th>
+       </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200"><!-- Data akan diisi oleh DataTables via AJAX -->
+      </tbody>
+     </table>
+    </div><!-- DataTable Mobile View (Card Layout) -->
+    <div id="mobile-cards" class="md:hidden space-y-4" data-aos="fade-up" data-aos-delay="200"><!-- Cards akan diisi oleh JavaScript -->
+    </div><!-- Pagination untuk Mobile -->
+    <div id="mobile-pagination" class="md:hidden mt-6 flex justify-center gap-2"><!-- Pagination akan diisi oleh JavaScript -->
+    </div>
+   </div>
+  </main><!-- Modal Form (Create/Update) -->
+  <div id="modal-form" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+   <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" data-aos="zoom-in"><!-- Modal Header -->
+    <div class="bg-gradient-to-r from-primary to-accent text-white px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+     <h2 id="modal-title" class="text-xl font-bold">Tambah Program</h2><button id="btn-close-modal" class="text-white hover:text-gray-200 transition">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg></button>
+    </div><!-- Modal Body -->
+    <form id="program-form" class="p-6 space-y-4" enctype="multipart/form-data">
+     {% csrf_token %} <input type="hidden" id="program-id" name="id"> <!-- Nama Program -->
+     <div><label for="nama" class="block text-sm font-semibold text-gray-700 mb-2">Nama Program *</label> <input type="text" id="nama" name="nama" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition">
+     </div><!-- Deskripsi -->
+     <div><label for="deskripsi" class="block text-sm font-semibold text-gray-700 mb-2">Deskripsi *</label> <textarea id="deskripsi" name="deskripsi" rows="4" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition"></textarea>
+     </div><!-- Thumbnail Upload & Preview -->
+     <div><label for="thumbnail" class="block text-sm font-semibold text-gray-700 mb-2">Thumbnail</label> <input type="file" id="thumbnail" name="thumbnail" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition">
+      <div id="preview-container" class="mt-3 hidden"><img id="preview-thumbnail" src="" alt="Preview" class="rounded-lg shadow-md">
+      </div>
+     </div><!-- Row: Harga & Jenis -->
+     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div><label for="harga" class="block text-sm font-semibold text-gray-700 mb-2">Harga (Rp) *</label> <input type="number" id="harga" name="harga" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition">
+      </div>
+      <div><label for="jenis" class="block text-sm font-semibold text-gray-700 mb-2">Jenis *</label> <select id="jenis" name="jenis" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition"> <option value="">-- Pilih Jenis --</option> <option value="Courses">Courses</option> <option value="Services">Services</option> </select>
+      </div>
+     </div><!-- Level (conditional) -->
+     <div id="level-container"><label for="level" class="block text-sm font-semibold text-gray-700 mb-2">Level</label> <select id="level" name="level" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition"> <option value="">-- Pilih Level --</option> <option value="Basic">Basic</option> <option value="Intermediate">Intermediate</option> <option value="Advance">Advance</option> </select>
+      <p class="text-xs text-gray-500 mt-1">*Optional untuk Services, wajib untuk Courses</p>
+     </div><!-- Row: Pendaftaran Mulai & Tutup -->
+     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div><label for="pendaftaran_mulai" class="block text-sm font-semibold text-gray-700 mb-2">Pendaftaran Mulai *</label> <input type="date" id="pendaftaran_mulai" name="pendaftaran_mulai" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition">
+      </div>
+      <div><label for="pendaftaran_tutup" class="block text-sm font-semibold text-gray-700 mb-2">Pendaftaran Tutup *</label> <input type="date" id="pendaftaran_tutup" name="pendaftaran_tutup" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition">
+      </div>
+     </div><!-- Row: Pelaksanaan Mulai & Selesai -->
+     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div><label for="pelaksanaan_mulai" class="block text-sm font-semibold text-gray-700 mb-2">Pelaksanaan Mulai *</label> <input type="date" id="pelaksanaan_mulai" name="pelaksanaan_mulai" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition">
+      </div>
+      <div><label for="pelaksanaan_selesai" class="block text-sm font-semibold text-gray-700 mb-2">Pelaksanaan Selesai *</label> <input type="date" id="pelaksanaan_selesai" name="pelaksanaan_selesai" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent transition">
+      </div>
+     </div><!-- Submit Button -->
+     <div class="flex justify-end gap-3 pt-4"><button type="button" id="btn-cancel" class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow transition"> Batal </button> <button type="submit" id="btn-submit" class="px-6 py-2 bg-accent hover:bg-blue-700 text-white rounded-lg shadow transition"> <span id="submit-text">Simpan</span> <span id="submit-loading" class="hidden">Menyimpan...</span> </button>
+     </div>
+    </form>
+   </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    
+    $(document).ready(function() {
+      // Initialize AOS
+      AOS.init({
+        duration: 800,
+        once: true,
+        offset: 100
+      });
+      
+      // Initialize DataTable
+      initDataTable();
+
+    });
+
+    // Show/hide level based on jenis
+    $('#jenis-select').on('change', toggleLevelField);
+    function toggleLevelField() {
+      if ($('#jenis-select').val() === 'Services') {
+        $('#level-field').hide();
+      } else {
+        $('#level-field').show();
+      }
+    }
+
+    // Preview thumbnail
+    $('#thumbnail-input').on('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          $('#thumbnail-preview').attr('src', e.target.result).removeClass('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Modal control
+    function openModal(isCreate = true, data = null) {
+      $('#modal-form').removeClass('hidden');
+      $('#program-form')[0].reset();
+      $('#thumbnail-preview').addClass('hidden');
+      toggleLevelField();
+
+      if (isCreate) {
+        $('#modal-title').text('Tambah Program Baru');
+        $('#program-id').val('');
+      } else {
+        $('#modal-title').text('Edit Program');
+        $('#program-id').val(data.id);
+        $('input[name="nama"]').val(data.nama);
+        $('textarea[name="deskripsi"]').val(data.deskripsi);
+        $('input[name="harga"]').val(data.harga);
+        $('select[name="jenis"]').val(data.jenis).trigger('change');
+        if (data.level) $('select[name="level"]').val(data.level);
+        $('input[name="pendaftaran_mulai"]').val(data.pendaftaran_mulai);
+        $('input[name="pendaftaran_tutup"]').val(data.pendaftaran_tutup);
+        $('input[name="pelaksanaan_mulai"]').val(data.pelaksanaan_mulai);
+        $('input[name="pelaksanaan_selesai"]').val(data.pelaksanaan_selesai);
+      }
+    }
+    $('#btn-create').click(() => openModal(true));
+    $('#btn-close-modal, #btn-cancel').on('click', () => {
+        $('#modal-form').addClass('hidden');
+        });
+
+    // DataTable
+    const table = $('#program-table').DataTable({
+      processing: true,
+      serverSide: true,
+      ajax: {
+        url: "{% url 'program:datatables' %}",
+        type: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
+        // Expected JSON response structure from backend:
+        // {
+        //   "draw": 1,
+        //   "recordsTotal": 100,
+        //   "recordsFiltered": 50,
+        //   "data": [
+        //     [ "Nama", "Courses", "100000", "Intermediate", "<button>...</button>" ]
+        //   ]
+        // }
+      },
+      columns: [
+        { data: "nama" },
+        { data: "jenis" },
+        { data: "harga" },
+        { data: "level" },
+        { data: "actions", orderable: false, searchable: false }
+      ],
+      language: {
+        search: "Cari:",
+        processing: "Memuat...",
+        info: "Menampilkan _START_ hingga _END_ dari _TOTAL_ entri",
+        paginate: {
+          first: "Pertama",
+          last: "Terakhir",
+          next: "Berikutnya",
+          previous: "Sebelumnya"
+        }
+      }
+    });
+    // Ganti bagian ini di akhir script (setelah inisialisasi DataTable)
+    $(document).on('click', '.btn-edit', function() {
+    const row = $(this).closest('tr');
+    const data = table.row(row).data(); // TAPI: ini hanya jalan jika DataTable punya data asli
+
+    // ALTERNATIF: ambil dari data attributes
+    const id = $(this).data('id');
+    const programData = {
+        id: id,
+        nama: $(this).data('nama'),
+        deskripsi: $(this).data('deskripsi'),
+        harga: $(this).data('harga'),
+        jenis: $(this).data('jenis'),
+        level: $(this).data('level') || '',
+        pendaftaran_mulai: $(this).data('pendaftaran_mulai') || '',
+        pendaftaran_tutup: $(this).data('pendaftaran_tutup') || '',
+        pelaksanaan_mulai: $(this).data('pelaksanaan_mulai') || '',
+        pelaksanaan_selesai: $(this).data('pelaksanaan_selesai') || ''
+    };
+
+    openModal(false, programData);
+    });
+
+    // Handle form submit
+    $('#program-form').on('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+
+      $.ajax({
+        url: "{% url 'program:create_or_update' %}",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        success: function(response) {
+          $('#modal-form').addClass('hidden');
+          table.ajax.reload();
+          alert(response.message || 'Berhasil!');
+        },
+        error: function(xhr) {
+          alert('Error: ' + (xhr.responseJSON?.error || 'Gagal menyimpan.'));
+        }
+      });
+    });
+
+    // Handle delete (delegated)
+    $(document).on('click', '.btn-delete', function() {
+      const id = $(this).data('id');
+      if (!confirm('Hapus program ini?')) return;
+
+      $.ajax({
+        url: "{% url 'program:delete' %}",
+        type: 'POST',
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        data: { id: id },
+        success: function(response) {
+          table.ajax.reload();
+          alert('Dihapus!');
+        },
+        error: function() {
+          alert('Gagal menghapus.');
+        }
+      });
+    });
+
+    // Handle import
+    $('#file-import').on('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('import_file', file);
+      formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+      $.ajax({
+        url: "{% url 'program:import' %}",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+          alert('Import berhasil!');
+          table.ajax.reload();
+        },
+        error: function(xhr) {
+          alert('Import gagal: ' + (xhr.responseJSON?.error || 'Error!'));
+        }
+      });
+    });
+  </script>
+</body>
+</html>

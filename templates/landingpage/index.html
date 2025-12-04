@@ -5,7 +5,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Diginus</title>
-  <script src="/_sdk/element_sdk.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
@@ -325,112 +324,67 @@
   <!-- Program Terbaru Section -->
   <!-- ... (section lainnya tetap utuh dari file asli, tanpa duplikasi) ... -->
   <!-- Saya mempertahankan semua bagian berikutnya tanpa perubahan struktural, hanya pastikan tidak ada duplikat -->
-
   <section class="w-full py-20 px-4 bg-gray-50" id="program" data-aos="fade-up">
-    <div class="max-w-7xl mx-auto">
-      <h2 class="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900" id="program-title">Program Terbaru Kami</h2>
-      <div class="relative">
-        <div class="slider-container" id="program-slider">
-          <div class="slider-track">
-            <div class="min-w-full px-4">
-              <div class="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row">
-                <div class="w-full md:w-1/2 h-64 md:h-auto">
+  <div class="max-w-7xl mx-auto">
+    <h2 class="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900" id="program-title">Program Terbaru Kami</h2>
+    <div class="relative">
+      <div class="slider-container" id="program-slider">
+        <div class="slider-track">
+          {% for program in programs %}
+          <div class="min-w-full px-4">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row">
+              <div class="w-full md:w-1/2 h-64 md:h-auto">
+                {% if program.thumbnail %}
+                  <img src="{{ program.thumbnail.url }}" alt="{{ program.nama }}" class="w-full h-full object-cover">
+                {% else %}
+                  <!-- fallback SVG seperti sebelumnya -->
                   <svg width="100%" height="100%" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
-                    <rect width="400" height="400" fill="url(#prog1)" />
+                    <rect width="400" height="400" fill="url(#prog{{ forloop.counter }})" />
                     <circle cx="200" cy="200" r="80" fill="rgba(255,255,255,0.15)" />
-                    <rect x="120" y="120" width="160" height="160" rx="20" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="3" />
-                    <circle cx="300" cy="100" r="40" fill="rgba(255,255,255,0.1)" />
-                    <circle cx="100" cy="300" r="50" fill="rgba(255,255,255,0.1)" />
                     <defs>
-                      <linearGradient id="prog1" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <linearGradient id="prog{{ forloop.counter }}" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" style="stop-color:#0c45ff;stop-opacity:1" />
                         <stop offset="100%" style="stop-color:#002873;stop-opacity:1" />
                       </linearGradient>
                     </defs>
                   </svg>
-                </div>
-                <div class="w-full md:w-1/2 p-8 flex flex-col justify-between">
-                  <div>
-                    <h3 class="text-2xl font-bold mb-4 text-gray-900">Bootcamp Data Science</h3>
-                    <p class="text-gray-600 mb-6">Program intensif 12 minggu untuk menguasai analisis data, machine learning, dan visualisasi data dengan proyek real-world.</p>
-                  </div>
-                  <button class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 smooth-transition font-semibold w-full md:w-auto hover-lift">Enroll Now</button>
-                </div>
+                {% endif %}
               </div>
-            </div>
-            <div class="min-w-full px-4">
-              <div class="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row">
-                <div class="w-full md:w-1/2 h-64 md:h-auto">
-                  <svg width="100%" height="100%" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
-                    <rect width="400" height="400" fill="url(#prog2)" />
-                    <path d="M100,200 L200,100 L300,200 L200,300 Z" fill="rgba(255,255,255,0.2)" />
-                    <circle cx="200" cy="200" r="60" fill="rgba(255,255,255,0.15)" />
-                    <rect x="50" y="50" width="100" height="100" rx="15" fill="rgba(255,255,255,0.1)" />
-                    <rect x="250" y="250" width="100" height="100" rx="15" fill="rgba(255,255,255,0.1)" />
-                    <defs>
-                      <linearGradient id="prog2" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#002873;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:#0c45ff;stop-opacity:1" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
+              <div class="w-full md:w-1/2 p-8 flex flex-col justify-between">
+                <div>
+                  <h3 class="text-2xl font-bold mb-4 text-gray-900">{{ program.nama }}</h3>
+                  <p class="text-gray-600 mb-6">{{ program.deskripsi }}</p>
                 </div>
-                <div class="w-full md:w-1/2 p-8 flex flex-col justify-between">
-                  <div>
-                    <h3 class="text-2xl font-bold mb-4 text-gray-900">Web Development Mastery</h3>
-                    <p class="text-gray-600 mb-6">Kuasai front-end dan back-end development dengan teknologi terkini seperti React, Node.js, dan database modern.</p>
-                  </div>
-                  <button class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 smooth-transition font-semibold w-full md:w-auto hover-lift">Enroll Now</button>
-                </div>
-              </div>
-            </div>
-            <div class="min-w-full px-4">
-              <div class="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row">
-                <div class="w-full md:w-1/2 h-64 md:h-auto">
-                  <svg width="100%" height="100%" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
-                    <rect width="400" height="400" fill="url(#prog3)" />
-                    <polygon points="200,80 320,200 200,320 80,200" fill="rgba(255,255,255,0.2)" />
-                    <circle cx="200" cy="200" r="70" fill="rgba(255,255,255,0.15)" />
-                    <line x1="100" y1="100" x2="300" y2="300" stroke="rgba(255,255,255,0.3)" stroke-width="3" />
-                    <line x1="300" y1="100" x2="100" y2="300" stroke="rgba(255,255,255,0.3)" stroke-width="3" />
-                    <defs>
-                      <linearGradient id="prog3" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#0c45ff;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:#002873;stop-opacity:1" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
-                <div class="w-full md:w-1/2 p-8 flex flex-col justify-between">
-                  <div>
-                    <h3 class="text-2xl font-bold mb-4 text-gray-900">UI/UX Design Professional</h3>
-                    <p class="text-gray-600 mb-6">Pelajari prinsip desain, user research, prototyping, dan tools profesional seperti Figma untuk menciptakan pengalaman digital yang luar biasa.</p>
-                  </div>
-                  <button class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 smooth-transition font-semibold w-full md:w-auto hover-lift">Enroll Now</button>
-                </div>
+                <button class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 smooth-transition font-semibold w-full md:w-auto hover-lift">Enroll Now</button>
               </div>
             </div>
           </div>
+          {% empty %}
+          <div class="text-center text-gray-500 py-10">Belum ada program tersedia.</div>
+          {% endfor %}
         </div>
-        <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-3 shadow-lg hover:bg-gray-100 smooth-transition" id="program-prev">
-          <svg width="24" height="24" fill="none" stroke="#002873" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-3 shadow-lg hover:bg-gray-100 smooth-transition" id="program-next">
-          <svg width="24" height="24" fill="none" stroke="#002873" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
       </div>
+
+      <!-- Tombol navigasi slider -->
+      <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-3 shadow-lg hover:bg-gray-100 smooth-transition" id="program-prev">
+        <svg width="24" height="24" fill="none" stroke="#002873" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-3 shadow-lg hover:bg-gray-100 smooth-transition" id="program-next">
+        <svg width="24" height="24" fill="none" stroke="#002873" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
-  </section>
+  </div>
+</section>
 
   <!-- Kenapa Diginus Berbeda -->
   <section class="w-full py-20 px-4 bg-white" data-aos="fade-up">
     <div class="max-w-7xl mx-auto">
       <h2 class="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">Kenapa Diginus Berbeda</h2>
-      <div class="grid md:grid-cols-2 gap-8 items-start">
+      <div class="grid grid-cols-1 md:grid-cols-[7fr_5fr] gap-8 items-start">
         <div class="rounded-xl border border-gray-200 overflow-hidden shadow-sm bg-white">
           <h2>
             <button type="button" class="accordion-button flex items-center justify-between w-full p-5 font-semibold text-left text-gray-700 text-lg rounded-t-xl border-b border-gray-200 hover:bg-gray-50 hover:text-gray-900 gap-3 smooth-transition" data-accordion="1" aria-expanded="true" aria-controls="accordion-body-1">
@@ -438,6 +392,7 @@
               <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 15 7-7 7 7" />
               </svg>
+              
             </button>
           </h2>
           <div id="accordion-body-1" class="accordion-content active border-b border-gray-200" aria-labelledby="accordion-heading-1">
@@ -486,18 +441,7 @@
           </div>
         </div>
         <div class="rounded-2xl overflow-hidden shadow-xl" id="accordion-image">
-          <svg width="100%" height="500" viewBox="0 0 500 500">
-            <rect width="500" height="500" fill="url(#acc1)" />
-            <circle cx="250" cy="250" r="100" fill="rgba(255,255,255,0.2)" />
-            <circle cx="150" cy="150" r="50" fill="rgba(255,255,255,0.15)" />
-            <circle cx="350" cy="350" r="70" fill="rgba(255,255,255,0.15)" />
-            <defs>
-              <linearGradient id="acc1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#002873;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#0c45ff;stop-opacity:1" />
-              </linearGradient>
-            </defs>
-          </svg>
+          <img src="{% static 'images/kenapa_diginus_1.png' %}" alt="/kenapa_diginus_1" class="w-full h-auto object-cover" />
         </div>
       </div>
     </div>
@@ -1057,52 +1001,10 @@
     const accordionButtons = document.querySelectorAll('.accordion-button');
     const accordionImage = document.getElementById('accordion-image');
     const accordionImages = [
-      `<svg width="100%" height="500" viewBox="0 0 500 500">
-        <rect width="500" height="500" fill="url(#acc1)"/>
-        <circle cx="250" cy="250" r="100" fill="rgba(255,255,255,0.2)"/>
-        <circle cx="150" cy="150" r="50" fill="rgba(255,255,255,0.15)"/>
-        <circle cx="350" cy="350" r="70" fill="rgba(255,255,255,0.15)"/>
-        <defs>
-          <linearGradient id="acc1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#002873;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#0c45ff;stop-opacity:1" />
-          </linearGradient>
-        </defs>
-      </svg>`,
-      `<svg width="100%" height="500" viewBox="0 0 500 500">
-        <rect width="500" height="500" fill="url(#acc2)"/>
-        <rect x="150" y="150" width="200" height="200" fill="rgba(255,255,255,0.2)" rx="20"/>
-        <circle cx="250" cy="250" r="60" fill="rgba(255,255,255,0.15)"/>
-        <defs>
-          <linearGradient id="acc2" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#0c45ff;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#002873;stop-opacity:1" />
-          </linearGradient>
-        </defs>
-      </svg>`,
-      `<svg width="100%" height="500" viewBox="0 0 500 500">
-        <rect width="500" height="500" fill="url(#acc3)"/>
-        <polygon points="250,100 400,400 100,400" fill="rgba(255,255,255,0.2)"/>
-        <circle cx="250" cy="300" r="50" fill="rgba(255,255,255,0.15)"/>
-        <defs>
-          <linearGradient id="acc3" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#002873;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#0c45ff;stop-opacity:1" />
-          </linearGradient>
-        </defs>
-      </svg>`,
-      `<svg width="100%" height="500" viewBox="0 0 500 500">
-        <rect width="500" height="500" fill="url(#acc4)"/>
-        <circle cx="150" cy="150" r="80" fill="rgba(255,255,255,0.2)"/>
-        <circle cx="350" cy="350" r="80" fill="rgba(255,255,255,0.2)"/>
-        <rect x="200" y="200" width="100" height="100" fill="rgba(255,255,255,0.15)" rx="15"/>
-        <defs>
-          <linearGradient id="acc4" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#0c45ff;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#002873;stop-opacity:1" />
-          </linearGradient>
-        </defs>
-      </svg>`
+    `<img src="{% static 'images/kenapa_diginus_1.png' %}" alt="/kenapa_diginus_1" class="w-full h-auto object-cover" />`,
+    `<img src="{% static 'images/kenapa_diginus_2.png' %}" alt="/kenapa_diginus_2" class="w-full h-auto object-cover" />`,
+    `<img src="{% static 'images/kenapa_diginus_3.png' %}" alt="/kenapa_diginus_3" class="w-full h-auto object-cover" />`,
+    `<img src="{% static 'images/kenapa_diginus_4.png' %}" alt="/kenapa_diginus_4" class="w-full h-auto object-cover" />`
     ];
     accordionButtons.forEach((button, index) => {
       button.addEventListener('click', () => {
