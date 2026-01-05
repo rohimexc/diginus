@@ -1,0 +1,32 @@
+{% extends 'pengguna/base.html' %}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4">
+    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg">
+        <h2 class="text-center text-3xl font-bold text-gray-800 mb-6">Daftar Akun</h2>
+        {% if error %}<div class="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{{ error }}</div>{% endif %}
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+                <input type="text" name="nama" required class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" name="email" required class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" name="password" required class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">Pilih Peran:</label>
+                <div class="flex gap-4">
+                    <label class="inline-flex items-center"><input type="checkbox" name="roles" value="Peserta" class="rounded text-indigo-600 mr-2"> Peserta</label>
+                    <label class="inline-flex items-center"><input type="checkbox" name="roles" value="Instruktur" class="rounded text-indigo-600 mr-2"> Instruktur</label>
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 mt-4 transition">Daftar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

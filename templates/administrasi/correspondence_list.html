@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+    /* Custom style agar Select2 serasi dengan Tailwind */
+    .select2-container--default .select2-selection--single {
+        border-color: #e5e7eb;
+        height: 42px;
+        padding: 5px;
+        border-radius: 0.5rem;
+    }
+    .select2-container { width: 100% !important; z-index: 9999; }
+</style>
+
+<div class="bg-white p-6 rounded-xl shadow-sm">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-gray-800">Arsip Surat Keluar</h2>
+        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition shadow-md">
+            <i class="fa fa-plus mr-2"></i>Buat Surat
+        </button>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <tr>
+                    <th class="p-4">Nomor Surat</th>
+                    <th class="p-4">Penerima</th>
+                    <th class="p-4">Perihal</th>
+                    <th class="p-4 text-center">Berkas</th>
+                    <th class="p-4 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="table-body" class="divide-y divide-gray-100">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="modal" class="fixed inset-0 hidden bg-black/50 flex items-center justify-center z-50">
+    <form id="main-form" class="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl transform transition-all">
+        <input type="hidden" name="id" id="f-id">
+        <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-4">Detail Surat Baru</h3>
+        
+        <div class="space-y-5">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">Customer</label>
+                <select name="customer_id" id="f-customer" class="w-full select-search">
+                    <option value="">-- Cari Customer --</option>
+                    {% for c in customers %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">Jenis Dokumen</label>
+                <select name="doc_type_id" id="f-type" class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    {% for t in doc_types %}
+                    <option value="{{ t.id }}">{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">Perihal</label>
+                <input type="text" name="subject" id="f-subject" placeholder="Contoh: Invoice Jasa Website" 
+                       class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-8">
+            <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 font-medium transition">
+                Batal
+            </button>
+            <button type="submit" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition shadow-lg">
+                Terbitkan
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // URL base untuk cetak invoice (PK=0 akan diganti dengan ID asli via JS)
+    const printBaseUrl = "{% url 'administrasi:print_invoice' pk=0 %}";
+
+    // Inisialisasi Select2
+    $(document).ready(function() {
+        $('#f-customer').select2({
+            dropdownParent: $('#modal'),
+            placeholder: "-- Pilih Customer --",
+            allowClear: true
+        });
+    });
+
+    async function loadData() {
+        const res = await fetch("{% url 'administrasi:api_docs_data' %}"); 
+        const json = await res.json();
+        const body = document.getElementById('table-body');
+        
+        body.innerHTML = json.data.map(d => {
+            let pdfLink = '';
+            let docxLink = '';
+
+            // Cek tipe dokumen
+            if (d.type === 'INVOICE') {
+                if (d.invoice_id) {
+                    const printUrl = printBaseUrl.replace('0', d.invoice_id);
+                    pdfLink = `
+                        <a href="${printUrl}" target="_blank" class="text-red-500 hover:text-red-700 transition" title="Cetak PDF">
+                            <i class="fa fa-file-pdf text-lg"></i>
+                        </a>`;
+                } else {
+                    pdfLink = `<span class="text-gray-300" title="Detail invoice belum diisi di menu Monitoring"><i class="fa fa-file-pdf text-lg"></i></span>`;
+                }
+            } else {
+                // Untuk selain INVOICE, tampilkan link Word
+                const printUrl = `{% url 'administrasi:print_docx' pk=0 %}`.replace('0', d.id);
+                docxLink = `
+                    <a href="${printUrl}" class="text-blue-600 hover:text-blue-800 transition" title="Unduh Word">
+                        <i class="fa fa-file-word text-lg"></i>
+                    </a>`;
+                }
+
+            return `
+                <tr class="border-b text-sm hover:bg-indigo-50/30 transition">
+                    <td class="p-4 font-mono font-bold text-indigo-600">${d.number}</td>
+                    <td class="p-4 font-medium text-gray-700">${d.customer}</td>
+                    <td class="p-4 text-gray-600">${d.subject}</td>
+                    <td class="p-4">
+                        <div class="flex items-center justify-center gap-3">
+                            ${pdfLink}
+                            ${docxLink}
+                        </div>
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick="del('doc', ${d.id})" class="text-gray-300 hover:text-red-600 transition p-2">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Fungsi Form Submit (Upsert)
+    document.getElementById('main-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        const response = await fetch("{% url 'administrasi:api_docs_upsert' %}", {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            body: formData
+        });
+
+        if (response.ok) {
+            closeModal(); 
+            loadData();
+        } else {
+            alert('Terjadi kesalahan saat menyimpan data.');
+        }
+    };
+
+    function openModal() { 
+        document.getElementById('main-form').reset(); 
+        $('#f-customer').val(null).trigger('change'); // Reset Select2
+        document.getElementById('modal').classList.remove('hidden'); 
+    }
+
+    function closeModal() { 
+        document.getElementById('modal').classList.add('hidden'); 
+    }
+
+    async function del(m, id) { 
+        if(confirm('Hapus dokumen ini secara permanen?')) { 
+            await fetch(`/administrasi/api/delete/${m}/${id}/`, {
+                method:'POST', 
+                headers:{'X-CSRFToken':'{{ csrf_token }}'}
+            }); 
+            loadData(); 
+        } 
+    }
+
+    // Load data pertama kali saat halaman dibuka
+    loadData();
+</script>
+{% endblock %}

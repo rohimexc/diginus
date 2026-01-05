@@ -1,0 +1,322 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Diginus Dashboard{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.tailwind.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+    
+    <style>
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        @media (max-width: 1023px) {
+            .sidebar-hidden { transform: translateX(-100%); }
+        }
+        .select2-container--default .select2-selection--single {
+        border-color: #e5e7eb; /* border-gray-200 */
+        height: 42px;
+        padding: 5px;
+        border-radius: 0.5rem;
+        }
+        .select2-container { width: 100% !important; }
+        #sidebar {
+        display: flex;
+        flex-direction: column;
+        }
+        nav {
+            flex: 1;
+            overflow-y: auto; /* Mengizinkan scroll internal pada nav */
+            scrollbar-width: thin; /* Untuk Firefox */
+            scrollbar-color: #4b5563 #0f172a; 
+        }
+        /* Custom Scrollbar untuk Chrome/Safari */
+        nav::-webkit-scrollbar { width: 4px; }
+        nav::-webkit-scrollbar-track { background: #0f172a; }
+        nav::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+
+        /* Container DataTables agar ada jarak */
+        .dataTables_wrapper {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        /* SEARCH BOX (KANAN) */
+        .dataTables_filter {
+            text-align: right;
+        }
+        .dataTables_filter input {
+            width: 250px !important; /* Lebar kotak pencarian */
+            margin-left: 1rem !important;
+            background-color: #f9fafb; /* gray-50 */
+            border: 1px solid #d1d5db !important; /* gray-300 */
+            padding: 0.6rem 1rem !important;
+            border-radius: 0.75rem !important;
+            transition: all 0.2s;
+        }
+        .dataTables_filter input:focus {
+            border-color: #4f46e5 !important; /* indigo-600 */
+            background-color: #fff;
+            ring: 2px;
+        }
+
+        /* SHOW ENTRIES (KIRI) */
+        .dataTables_length select {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.75rem !important;
+            padding: 0.5rem 2rem 0.5rem 1rem !important;
+            background-color: #f9fafb;
+        }
+
+        /* TABLE STYLING */
+        table.dataTable {
+            margin-top: 1.5rem !important;
+            margin-bottom: 1.5rem !important;
+            border-collapse: collapse !important;
+        }
+        table.dataTable thead th {
+            background-color: #f8fafc; /* slate-50 */
+            color: #475569; /* slate-600 */
+            padding: 12px 16px !important;
+            border-bottom: 2px solid #e2e8f0 !important;
+        }
+        table.dataTable tbody td {
+            padding: 12px 16px !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+        }
+
+        /* PAGINATION STYLING */
+        .dataTables_paginate .paginate_button {
+            padding: 0 !important;
+            margin: 0 2px !important;
+            border: none !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-900">
+
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black opacity-50 z-20 hidden lg:hidden"></div>
+
+    <aside id="sidebar" class="fixed left-0 top-0 h-screen w-64 bg-slate-900 text-white z-30 sidebar-transition sidebar-hidden lg:transform-none">
+        <div class="p-6 flex items-center justify-between">
+            <div class="flex items-center">
+                <img src="{% static 'images/diginus.png' %}" alt="DIGINUS" class="rounded rounded-xl h-16 w-auto" />
+            </div>
+            <button id="close-sidebar" class="lg:hidden text-gray-400 hover:text-white">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <nav class="mt-4 px-4 space-y-2">
+            <a href="#" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition bg-slate-800 text-blue-400">
+                <i class="fas fa-home w-8"></i> Dashboard
+            </a>
+            <p class="text-xs font-semibold text-gray-500 uppercase px-3 mt-6">Manajemen Kursus</p>
+            <a href="{% url 'courses:course_list' %}" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-book w-8"></i> Courses
+            </a>
+            <a href="{% url 'courses:category_list' %}" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-tags w-8"></i> Categories
+            </a>
+            <p class="text-xs font-semibold text-gray-500 uppercase px-3 mt-6">Akademik</p>
+            <a href="#" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-users w-8"></i> Enrollments
+            </a>
+            <a href="#" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-certificate w-8"></i> Certificates
+            </a>
+            <p class="text-xs font-semibold text-gray-500 uppercase px-3 mt-6">Administrasi</p>
+            <a href="{% url 'administrasi:customer_list' %}" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-users w-8"></i> Pelanggan
+            </a>
+            <a href="{% url 'administrasi:document_type_list' %}" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-file-alt w-8"></i> Jenis Surat
+            </a>
+            <a href="{% url 'administrasi:correspondence_list' %}" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-file-alt w-8"></i> Surat Keluar
+            </a>
+            <a href="{% url 'administrasi:invoice_list' %}" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-cash-register w-8"></i> Invoice
+            </a>
+            <p class="text-xs font-semibold text-gray-500 uppercase px-3 mt-6">Keuangan</p>
+            <a href="{% url 'administrasi:finance_dashboard' %}" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-rupiah-sign w-8"></i> Finance
+            </a>
+
+            <p class="text-xs font-semibold text-gray-500 uppercase px-3 mt-6">Manajemen Pengguna</p>
+            <a href="{% url 'pengguna:user_list' %}" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-users w-8"></i> User
+            </a>
+            <p class="text-xs font-semibold text-gray-500 uppercase px-3 mt-6">Manajemen Landing Page</p>
+            <a href="{% url 'landingpage:project_list' %}" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                <i class="fas fa-users w-8"></i> Portofolio
+            </a>
+            <hr class="border-slate-800 my-4">
+
+            <a href="{% url 'pengguna:logout' %}" class="flex items-center p-3 rounded-lg hover:bg-red-900/50 text-red-400 transition">
+                <i class="fas fa-sign-out-alt w-8"></i> Logout
+            </a>
+        </nav>
+    </aside>
+
+    <div class="lg:ml-64 min-h-screen flex flex-col">
+        
+        <header class="bg-white shadow-sm h-16 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-10">
+            <div class="flex items-center gap-4">
+                <button id="open-sidebar" class="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-md">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h2 class="text-lg font-semibold text-gray-700 hidden md:block">{% block page_title %}Dashboard Overview{% endblock %}</h2>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <button class="p-2 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-bell"></i>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                </div>
+                <div class="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                    <i class="fa-regular fa-user"></i>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 lg:p-8 flex-grow">
+            {% block content %}
+            {% endblock %}
+        </main>
+
+        <footer class="p-4 lg:p-8 text-center text-gray-500 text-sm border-t bg-white">
+            &copy; 2026 Diginus Learning Platform. All rights reserved.
+        </footer>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/dataTables.tailwind.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const openBtn = document.getElementById('open-sidebar');
+        const closeBtn = document.getElementById('close-sidebar');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('sidebar-hidden');
+            overlay.classList.toggle('hidden');
+        }
+
+        openBtn.addEventListener('click', toggleSidebar);
+        closeBtn.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', toggleSidebar);
+
+        // Helper function for AJAX CSRF
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        // 1. Konfigurasi Global Toast (Notifikasi Kecil)
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            // 2. Fungsi Global untuk Alert Sukses
+            window.showSuccess = (message) => {
+                Toast.fire({
+                    icon: 'success',
+                    title: message
+                });
+            };
+
+            // 3. Fungsi Global untuk Alert Error
+            window.showError = (message) => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: message,
+                    confirmButtonColor: '#3b82f6', // Warna Blue-500 Tailwind
+                });
+            };
+
+            // 4. Fungsi Global untuk Konfirmasi Hapus
+            // Menggunakan callback agar bisa digunakan secara fleksibel
+            window.confirmDelete = async (title = 'Apakah Anda yakin?', text = "Data akan dihapus permanen!") => {
+                return await Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444', // Red-500
+                    cancelButtonColor: '#6b7280',  // Gray-500
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal'
+                });
+            };
+
+            // 5. Fungsi Global Loading
+            window.showLoading = (title = 'Sedang memproses...') => {
+                Swal.fire({
+                    title: title,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            };
+            $(document).ready(function() {
+        // Inisialisasi otomatis untuk tabel dengan class .datatable
+        
+        $(document).ready(function() {
+            if ($('.datatable').length > 0) {
+                $('.datatable').DataTable({
+                    responsive: true,
+                    // l=length, f=filter, t=table, i=info, p=pagination
+                    dom: '<"flex flex-col md:flex-row justify-between items-center gap-4 mb-6"lf>rt<"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"ip>',
+                    language: {
+                        search: "",
+                        searchPlaceholder: "Cari data...",
+                        lengthMenu: "Tampilkan _MENU_",
+                        info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                        paginate: {
+                            next: '<i class="fas fa-chevron-right text-xs"></i>',
+                            previous: '<i class="fas fa-chevron-left text-xs"></i>'
+                        }
+                    },
+                    drawCallback: function() {
+                        // Merapikan tombol navigasi setelah tabel di-render
+                        $('.dataTables_paginate').addClass('inline-flex items-center space-x-1');
+                        $('.dataTables_paginate .paginate_button').addClass('px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors');
+                        $('.dataTables_paginate .current').addClass('!bg-indigo-600 !text-white !border-indigo-600');
+                        $('.dataTables_paginate .disabled').addClass('opacity-50 cursor-not-allowed');
+                    }
+                });
+            }
+    });
+    }); 
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

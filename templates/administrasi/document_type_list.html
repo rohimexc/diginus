@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}Master Jenis Surat{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Jenis Surat & Template</h2>
+            <p class="text-sm text-gray-500">Kelola kode surat dan unggah template Word (.docx)</p>
+        </div>
+        <button onclick="openTypeModal()" class="bg-black text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-800 transition shadow-lg shadow-gray-200">
+            <i class="fas fa-plus mr-2"></i> Tambah Jenis
+        </button>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-100">
+                    <th class="p-4 text-xs font-bold uppercase text-gray-500">Kode</th>
+                    <th class="p-4 text-xs font-bold uppercase text-gray-500">Nama Dokumen</th>
+                    <th class="p-4 text-xs font-bold uppercase text-gray-500 text-center">Template File</th>
+                    <th class="p-4 text-xs font-bold uppercase text-gray-500 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="type-table-body" class="divide-y divide-gray-50">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="type-modal" class="fixed inset-0 hidden bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-gray-50 px-8 py-4 border-b">
+            <h3 id="modal-title" class="text-lg font-bold text-gray-800">Tambah Jenis Surat</h3>
+        </div>
+        <form id="type-form" class="p-8 space-y-5" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="id" id="type-id">
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Kode Surat (Contoh: INV)</label>
+                <input type="text" name="code" id="type-code" required maxlength="10" 
+                    class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-black outline-none bg-gray-50 uppercase">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Dokumen</label>
+                <input type="text" name="name" id="type-name" required 
+                    class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-black outline-none bg-gray-50" 
+                    placeholder="Contoh: Invoice Tagihan">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 text-indigo-600">File Template (.docx)</label>
+                <div class="relative border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-indigo-400 transition cursor-pointer">
+                    <input type="file" name="template_docx" id="type-file" accept=".docx" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <i class="fas fa-cloud-upload-alt text-2xl text-gray-300 mb-2"></i>
+                    <p id="file-label" class="text-xs text-gray-400">Klik atau seret file Word ke sini</p>
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closeTypeModal()" class="flex-1 px-4 py-2.5 border rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition">Batal</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition">Simpan Jenis</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const typeTableBody = document.getElementById('type-table-body');
+    const typeForm = document.getElementById('type-form');
+    const typeModal = document.getElementById('type-modal');
+    const fileInput = document.getElementById('type-file');
+    const fileLabel = document.getElementById('file-label');
+
+    // Tampilkan nama file saat dipilih
+    fileInput.addEventListener('change', (e) => {
+        if(e.target.files.length > 0) fileLabel.innerText = e.target.files[0].name;
+    });
+
+    async function loadTypes() {
+        const response = await fetch("{% url 'administrasi:api_type_data' %}");
+        const result = await response.json();
+        
+        typeTableBody.innerHTML = result.data.map(t => `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="p-4 font-mono font-black text-indigo-600">${t.code}</td>
+                <td class="p-4 font-semibold text-gray-800">${t.name}</td>
+                <td class="p-4 text-center">
+                    ${t.template_docx ? 
+                        `<a href="/media/${t.template_docx}" class="inline-flex items-center text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition">
+                            <i class="fas fa-file-word mr-1.5"></i> Download Template
+                        </a>` : 
+                        `<span class="text-xs text-gray-400 italic">No Template</span>`
+                    }
+                </td>
+                <td class="p-4 text-right">
+                    <button onclick='editType(${JSON.stringify(t)})' class="p-2 text-gray-400 hover:text-black transition">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button onclick="deleteType(${t.id})" class="p-2 text-gray-400 hover:text-red-600 transition">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    typeForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(typeForm);
+        
+        const response = await fetch("{% url 'administrasi:api_type_upsert' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        });
+
+        if (response.ok) {
+            closeTypeModal();
+            loadTypes();
+            alert("Berhasil menyimpan data!");
+        }
+    };
+
+    function editType(t) {
+        document.getElementById('modal-title').innerText = "Edit Jenis Surat";
+        document.getElementById('type-id').value = t.id;
+        document.getElementById('type-code').value = t.code;
+        document.getElementById('type-name').value = t.name;
+        fileLabel.innerText = "Klik untuk mengganti template (opsional)";
+        typeModal.classList.remove('hidden');
+    }
+
+    function openTypeModal() {
+        document.getElementById('modal-title').innerText = "Tambah Jenis Surat";
+        typeForm.reset();
+        document.getElementById('type-id').value = "";
+        fileLabel.innerText = "Klik atau seret file Word ke sini";
+        typeModal.classList.remove('hidden');
+    }
+
+    function closeTypeModal() { typeModal.classList.add('hidden'); }
+
+    async function deleteType(id) {
+        if(confirm('Hapus jenis surat ini? Arsip surat terkait mungkin akan bermasalah.')) {
+            const res = await fetch(`/administrasi/api/delete/type/${id}/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            });
+            if(res.ok) loadTypes();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadTypes);
+</script>
+{% endblock %}

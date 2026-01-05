@@ -37,9 +37,48 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'landingpage',
-    'program'
+    'program',
+    'courses',
+    'services',
+    'administrasi',
+    'pengguna',
+    
+    # Third party (allauth)
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 ]
+
+# Konfigurasi Wajib Allauth
+SITE_ID = 1
+# 1. Tentukan metode login (Gunakan set {})
+ACCOUNT_LOGIN_METHODS = {'email'}
+
+# 2. Field yang wajib diisi saat pendaftaran
+# Tanda bintang (*) berarti field tersebut wajib diisi
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+
+# 3. Pengaturan tambahan agar proses lancar
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'none' # Set 'none' selama development
+ACCOUNT_AUTHENTICATION_METHOD = 'email' # Tetap sertakan ini untuk kompatibilitas beberapa plugin
+
+SOCIALACCOUNT_ADAPTER = 'pengguna.adapter.MySocialAccountAdapter'
+
+AUTHENTICATION_BACKENDS = [
+    # Login bawaan Django admin menggunakan username
+    'django.contrib.auth.backends.ModelBackend',
+    # Login menggunakan email via allauth
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Tambahkan baris yang kita bahas sebelumnya
+AUTH_USER_MODEL = 'pengguna.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -49,6 +88,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'diginus.urls'
@@ -105,7 +145,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'id'
 
 TIME_ZONE = 'UTC'
 
@@ -137,3 +177,14 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Gunakan ini saat development (email akan muncul di terminal)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Gunakan ini saat sudah mau live (misal pakai Gmail SMTP)
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'emailanda@gmail.com'
+# EMAIL_HOST_PASSWORD = 'password-aplikasi-anda'

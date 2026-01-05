@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Courses{% endblock %}
+{% block page_title %}Manajemen Kursus{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-sm p-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <h3 class="text-xl font-bold text-gray-800">Daftar Kursus</h3>
+        <button onclick="openCreateModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+            <i class="fas fa-plus mr-2"></i> Buat Kursus Baru
+        </button>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-50 border-b">
+                <tr class="text-gray-500 uppercase text-xs font-semibold">
+                    <th class="py-4 px-4">Thumbnail</th>
+                    <th class="py-4 px-4">Judul Kursus</th>
+                    <th class="py-4 px-4">Kategori</th>
+                    <th class="py-4 px-4">Level</th>
+                    <th class="py-4 px-4">Harga</th>
+                    <th class="py-4 px-4">Status</th>
+                    <th class="py-4 px-4 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="course-table-body" class="divide-y divide-gray-100 text-sm">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="course-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8 transform transition-all">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modal-title" class="text-2xl font-bold text-gray-900">Tambah Kursus</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <form id="course-form" enctype="multipart/form-data">
+                <input type="hidden" id="course-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Judul Kursus</label>
+                        <input type="text" id="course-title" name="title" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Kategori</label>
+                        <select id="course-category" name="category" required class="w-full px-4 py-2 border rounded-lg outline-none">
+                            <option value="">Pilih Kategori</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Level</label>
+                        <select id="course-level" name="level" class="w-full px-4 py-2 border rounded-lg outline-none">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Harga (IDR)</label>
+                        <input type="number" id="course-price" name="price" value="0" class="w-full px-4 py-2 border rounded-lg outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Thumbnail</label>
+                        <input type="file" id="course-thumbnail" name="thumbnail" accept="image/*" class="w-full text-sm">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Deskripsi Singkat</label>
+                        <input type="text" id="course-short-desc" name="short_description" class="w-full px-4 py-2 border rounded-lg outline-none">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Deskripsi Lengkap</label>
+                        <textarea id="course-desc" name="description" rows="3" class="w-full px-4 py-2 border rounded-lg outline-none"></textarea>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="course-published" name="is_published" class="w-4 h-4 text-blue-600">
+                        <label for="course-published" class="text-sm font-medium text-gray-700">Publikasikan Kursus</label>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Batal</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">Simpan Kursus</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const modal = document.getElementById('course-modal');
+    const form = document.getElementById('course-form');
+    const tableBody = document.getElementById('course-table-body');
+
+    // --- 1. LOAD DATA ---
+    async function loadCourses() {
+        try {
+            const response = await fetch("{% url 'courses:api_course_list' %}");
+            const result = await response.json();
+            
+            tableBody.innerHTML = '';
+            result.data.forEach(c => {
+                const statusBadge = c.is_published 
+                    ? '<span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Published</span>'
+                    : '<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Draft</span>';
+                
+                tableBody.innerHTML += `
+                    <tr id="row-${c.id}" class="hover:bg-gray-50 transition">
+                        <td class="py-4 px-4">
+                            <img src="${c.thumbnail}" class="w-16 h-10 object-cover rounded-md shadow-sm border">
+                        </td>
+                        <td class="py-4 px-4 font-bold text-gray-900">${c.title}</td>
+                        <td class="py-4 px-4 text-gray-600">${c.category}</td>
+                        <td class="py-4 px-4 italic text-gray-500">${c.level}</td>
+                        <td class="py-4 px-4 font-semibold text-blue-600">Rp ${c.price.toLocaleString()}</td>
+                        <td class="py-4 px-4">${statusBadge}</td>
+                        <td class="py-4 px-4 text-center">
+                            <a href="/courses/${c.id}/curriculum/" class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition inline-block" title="Kelola Kurikulum">
+                                <i class="fas fa-book-open"></i>
+                            </a>
+                            <button onclick='openEditModal(${JSON.stringify(c)})' class="text-blue-600 hover:text-blue-800 mx-1">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteCourse(${c.id})" class="text-red-600 hover:text-red-800 mx-1">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch (e) { showError('Gagal memuat data kursus.'); }
+    }
+
+    // --- 2. MODAL CONTROL ---
+    function openCreateModal() {
+        form.reset();
+        document.getElementById('course-id').value = '';
+        document.getElementById('modal-title').innerText = 'Buat Kursus Baru';
+        modal.classList.remove('hidden');
+    }
+
+    function openEditModal(data) {
+        document.getElementById('course-id').value = data.id;
+        document.getElementById('course-title').value = data.title;
+        document.getElementById('course-price').value = data.price;
+        document.getElementById('course-published').checked = data.is_published;
+        document.getElementById('course-level').value = data.level.toLowerCase();
+        // Untuk select category, cari option yang teksnya sama atau sesuaikan API agar kirim ID
+        modal.classList.remove('hidden');
+    }
+
+    function closeModal() { modal.classList.add('hidden'); }
+
+    // --- 3. SUBMIT AJAX ---
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLoading();
+
+        const id = document.getElementById('course-id').value;
+        let url = "{% url 'courses:api_course_create' %}";
+        if (id) {
+            url = "{% url 'courses:api_course_update' 0 %}".replace('0', id);
+        }
+
+        const formData = new FormData(form);
+        // Tambahkan status checkbox secara manual karena FormData checkbox agak tricky
+        formData.set('is_published', document.getElementById('course-published').checked);
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                body: formData // Kirim sebagai multipart/form-data
+            });
+
+            if (response.ok) {
+                closeModal();
+                loadCourses();
+                showSuccess('Data kursus berhasil disimpan!');
+            } else { showError('Gagal menyimpan kursus.'); }
+        } catch (e) { showError('Terjadi kesalahan jaringan.'); }
+    });
+
+    // --- 4. DELETE ---
+    async function deleteCourse(id) {
+        const result = await confirmDelete('Hapus Kursus?', 'Semua modul dan pelajaran di dalamnya juga akan terhapus!');
+        if (result.isConfirmed) {
+            showLoading('Menghapus...');
+            const url = "{% url 'courses:api_course_delete' 0 %}".replace('0', id);
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                });
+                if (response.ok) {
+                    loadCourses();
+                    Swal.close();
+                    showSuccess('Kursus berhasil dihapus.');
+                }
+            } catch (e) { showError('Gagal menghapus.'); }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadCourses);
+</script>
+{% endblock %}

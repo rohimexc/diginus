@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block title %}Monitoring Piutang{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-gray-800">Monitoring Piutang</h2>
+        <a href="{% url 'administrasi:correspondence_list' %}" class="bg-black text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition">
+            + Buat Surat/Invoice Baru
+        </a>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase">
+                <tr>
+                    <th class="p-4">Nomor Surat</th>
+                    <th class="p-4">Pelanggan</th>
+                    <th class="p-4">Total Tagihan</th>
+                    <th class="p-4">Sisa Piutang</th>
+                    <th class="p-4">Status</th>
+                    <th class="p-4 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="table-body" class="divide-y divide-gray-50">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="modal" class="fixed inset-0 hidden bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center overflow-y-auto p-4">
+    <form id="main-form" class="bg-white p-8 rounded-2xl w-full max-w-2xl my-auto shadow-2xl">
+        {% csrf_token %}
+        <input type="hidden" name="id" id="f-id">
+        
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Detail & Item Invoice</h3>
+            <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tipe Invoice</label>
+                <select name="invoice_type" id="f-type" class="w-full border border-gray-200 p-2.5 rounded-xl mt-1 bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="DP">Down Payment (DP)</option>
+                    <option value="LUNAS">Pelunasan</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tanggal Jatuh Tempo</label>
+                <input type="date" name="due_date" id="f-due" class="w-full border border-gray-200 p-2.5 rounded-xl mt-1 bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <div class="border-t border-gray-100 pt-6">
+            <div class="flex justify-between items-center mb-4">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Daftar Produk / Jasa</label>
+                <button type="button" onclick="addItemRow()" class="text-blue-600 text-xs font-bold hover:underline">
+                    + Tambah Baris
+                </button>
+            </div>
+            <div id="items-container" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                </div>
+        </div>
+
+        <div class="border-t border-gray-100 mt-8 pt-6">
+            <div class="bg-blue-50 p-4 rounded-2xl">
+                <label class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Total Yang Sudah Dibayarkan</label>
+                <div class="flex items-center mt-1">
+                    <span class="font-bold text-blue-600 mr-2">Rp</span>
+                    <input type="number" name="paid_amount" id="f-paid" placeholder="0" 
+                        class="w-full bg-transparent border-none p-0 font-bold text-xl text-blue-700 focus:ring-0 outline-none">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-8">
+            <button type="button" onclick="closeModal()" class="px-4 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition">
+                Batal
+            </button>
+            <button type="submit" class="px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition">
+                Simpan Perubahan
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const fmt = n => 'Rp ' + Number(n).toLocaleString('id-ID');
+    const printBaseUrl = "{% url 'administrasi:print_invoice' pk=0 %}";
+
+    async function loadData() {
+        try {
+            const res = await fetch("{% url 'administrasi:api_invoice_data' %}");
+            const json = await res.json();
+            const body = document.getElementById('table-body');
+            
+            body.innerHTML = json.data.map(i => {
+                const printUrl = printBaseUrl.replace('0', i.id);
+                return `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-4 font-mono font-bold text-blue-600 text-xs">${i.number}</td>
+                        <td class="p-4 text-gray-800 font-medium">${i.customer}</td>
+                        <td class="p-4 font-semibold text-gray-700">${fmt(i.total_amount)}</td>
+                        <td class="p-4 text-red-600 font-bold">${fmt(i.remaining)}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold tracking-tight ${i.is_paid ? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">
+                                ${i.is_paid ? 'LUNAS':'PIUTANG'}
+                            </span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <div class="flex justify-center gap-2">
+                                <button onclick='edit(${JSON.stringify(i)})' class="bg-white border border-gray-200 p-2 rounded-lg text-gray-400 hover:text-blue-600 transition shadow-sm">
+                                    <i class="fa fa-wallet"></i>
+                                </button>
+                                <a href="${printUrl}" target="_blank" class="bg-white border border-gray-200 p-2 rounded-lg text-gray-400 hover:text-emerald-600 transition shadow-sm">
+                                    <i class="fa fa-print"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (e) {
+            console.error("Gagal memuat data:", e);
+        }
+    }
+
+    function addItemRow(desc = '', qty = 1, price = 0) {
+        const container = document.getElementById('items-container');
+        const row = document.createElement('div');
+        row.className = 'flex gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-100 animate-fadeIn';
+        row.innerHTML = `
+            <div class="flex-1">
+                <input type="text" name="item_desc[]" value="${desc}" placeholder="Deskripsi Item" class="w-full bg-transparent border-none p-0 text-sm focus:ring-0" required>
+            </div>
+            <div class="w-20">
+                <input type="number" name="item_qty[]" value="${qty}" placeholder="Qty" class="w-full bg-transparent border-none p-0 text-sm text-center focus:ring-0 font-bold" required>
+            </div>
+            <div class="w-32">
+                <input type="number" name="item_price[]" value="${price}" placeholder="Harga" class="w-full bg-transparent border-none p-0 text-sm text-right focus:ring-0 font-bold" required>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-gray-300 hover:text-red-500 ml-2">
+                <i class="fa fa-times-circle"></i>
+            </button>
+        `;
+        container.appendChild(row);
+    }
+
+    function edit(i) {
+        document.getElementById('f-id').value = i.id;
+        // Gunakan fallback jika key API berbeda (i.invoice_type vs i.type)
+        document.getElementById('f-type').value = i.invoice_type || i.type || 'LUNAS'; 
+        document.getElementById('f-paid').value = i.paid_amount || 0;
+        document.getElementById('f-due').value = i.due_date || '';
+        
+        const container = document.getElementById('items-container');
+        container.innerHTML = ''; 
+        
+        if (i.items && i.items.length > 0) {
+            i.items.forEach(item => {
+                // Pastikan key item sesuai dengan yang dikirim API (desc/description)
+                addItemRow(item.desc || item.description, item.qty || item.quantity, item.price || item.unit_price);
+            });
+        } else {
+            addItemRow();
+        }
+        
+        document.getElementById('modal').classList.remove('hidden');
+    }
+
+    document.getElementById('main-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        try {
+            const res = await fetch("{% url 'administrasi:api_invoice_upsert' %}", {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'},
+                body: formData
+            });
+            
+            if (res.ok) {
+                closeModal(); 
+                loadData();
+            } else {
+                const err = await res.json();
+                alert("Error: " + err.message);
+            }
+        } catch (error) {
+            alert("Terjadi kesalahan koneksi.");
+        }
+    };
+
+    function closeModal() { 
+        document.getElementById('modal').classList.add('hidden'); 
+    }
+
+    document.addEventListener('DOMContentLoaded', loadData);
+</script>
+
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
+    /* Memperbaiki tampilan scrollbar item */
+    #items-container::-webkit-scrollbar { width: 4px; }
+    #items-container::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+</style>
+{% endblock %}

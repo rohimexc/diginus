@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Keuangan{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-blue-600 text-white p-6 rounded-2xl shadow-lg">
+        <p class="text-xs uppercase opacity-70 font-bold">Revenue (Pemasukan)</p>
+        <h2 id="r-rev" class="text-3xl font-black">Rp 0</h2>
+    </div>
+    <div class="bg-red-500 text-white p-6 rounded-2xl shadow-lg">
+        <p class="text-xs uppercase opacity-70 font-bold">Expenses (Pengeluaran)</p>
+        <h2 id="r-exp" class="text-3xl font-black">Rp 0</h2>
+    </div>
+    <div class="bg-emerald-600 text-white p-6 rounded-2xl shadow-lg">
+        <p class="text-xs uppercase opacity-70 font-bold">Net Profit</p>
+        <h2 id="r-pro" class="text-3xl font-black">Rp 0</h2>
+    </div>
+</div>
+
+<div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm mb-8">
+    <div class="flex items-center gap-2 mb-6">
+        <h3 class="font-bold text-gray-700 uppercase text-sm tracking-wider">Distribusi Laba Terkumpul</h3>
+        <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-400 font-mono italic">Rule: 40/50/10</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="p-4 bg-orange-50 border-l-4 border-orange-500 rounded-r-xl">
+            <p class="text-[10px] font-bold text-orange-600 uppercase">Gaji & SDM (40%)</p>
+            <h4 id="a-gaji" class="text-xl font-bold text-gray-800">Rp 0</h4>
+        </div>
+        <div class="p-4 bg-indigo-50 border-l-4 border-indigo-500 rounded-r-xl">
+            <p class="text-[10px] font-bold text-indigo-600 uppercase">Operasional (50%)</p>
+            <h4 id="a-ops" class="text-xl font-bold text-gray-800">Rp 0</h4>
+        </div>
+        <div class="p-4 bg-green-50 border-l-4 border-green-500 rounded-r-xl">
+            <p class="text-[10px] font-bold text-green-600 uppercase">Sedekah (10%)</p>
+            <h4 id="a-sed" class="text-xl font-bold text-gray-800">Rp 0</h4>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="font-bold text-gray-800">Riwayat Pengeluaran</h2>
+        <button onclick="openModal()" class="bg-black text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-800 transition">
+            + Catat Biaya
+        </button>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+            <thead class="text-[10px] uppercase text-gray-400 font-bold border-b">
+                <tr>
+                    <th class="pb-3">Tanggal</th>
+                    <th class="pb-3">Kategori</th>
+                    <th class="pb-3">Keterangan</th>
+                    <th class="pb-3 text-right">Nominal</th>
+                    <th class="pb-3 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="exp-body" class="divide-y divide-gray-50">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="modal" class="fixed inset-0 hidden bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <form id="main-form" class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl">
+        <input type="hidden" name="id" id="f-id">
+        <div class="flex justify-between items-center mb-6">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-800">Catat Pengeluaran</h3>
+            <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Kategori Alokasi</label>
+                <select name="category" id="f-category" class="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-black outline-none bg-gray-50 mt-1" required>
+                    <option value="GAJI">GAJI & SDM</option>
+                    <option value="OPERASIONAL">OPERASIONAL</option>
+                    <option value="SEDEKAH">SEDEKAH</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Nama Biaya / Keterangan</label>
+                <input type="text" name="title" id="f-title" placeholder="Contoh: Bayar Listrik" class="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-black outline-none mt-1" required>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Nominal (Angka Saja)</label>
+                <input type="number" name="amount" id="f-amount" placeholder="0" class="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-black outline-none mt-1 font-bold text-red-600" required>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Tanggal</label>
+                <input type="date" name="date" id="f-date" class="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-black outline-none mt-1 bg-gray-50" required>
+            </div>
+        </div>
+
+        <div class="mt-8 flex flex-col gap-2">
+            <button type="submit" class="w-full bg-black text-white p-4 rounded-2xl font-bold hover:bg-gray-800 shadow-lg shadow-gray-200 transition">
+                Simpan Transaksi
+            </button>
+            <button type="button" onclick="closeModal()" class="w-full text-gray-400 py-2 text-xs font-semibold">
+                Batalkan
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const fmt = n => 'Rp ' + Number(n).toLocaleString('id-ID');
+
+    async function loadSummary() {
+        const res = await fetch("{% url 'administrasi:api_finance_summary' %}");
+        const s = await res.json();
+        
+        document.getElementById('r-rev').innerText = fmt(s.revenue);
+        document.getElementById('r-exp').innerText = fmt(s.expenses);
+        document.getElementById('r-pro').innerText = fmt(s.net_profit);
+
+        // Jika profit minus/nol, alokasi tampil Rp 0 (biar dashboard tidak terlihat aneh)
+        const isLoss = s.net_profit <= 0;
+        document.getElementById('a-gaji').innerText = isLoss ? 'Rp 0' : fmt(s.allocation_gaji);
+        document.getElementById('a-ops').innerText = isLoss ? 'Rp 0' : fmt(s.allocation_ops);
+        document.getElementById('a-sed').innerText = isLoss ? 'Rp 0' : fmt(s.allocation_sedekah);
+    }
+    
+    async function loadExpenses() {
+        const res = await fetch("{% url 'administrasi:api_expense_data' %}");
+        const json = await res.json();
+        const body = document.getElementById('exp-body');
+        
+        body.innerHTML = json.data.map(e => `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="py-4 text-gray-400 font-mono text-xs">${e.date}</td>
+                <td class="py-4"><span class="px-2 py-0.5 bg-gray-100 rounded text-[10px] font-bold text-gray-500">${e.category}</span></td>
+                <td class="py-4 font-semibold text-gray-800">${e.title}</td>
+                <td class="py-4 text-right text-red-500 font-bold">- ${fmt(e.amount)}</td>
+                <td class="py-4 text-center">
+                    <button onclick="del('expense', ${e.id})" class="text-gray-300 hover:text-red-500 transition px-2">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    document.getElementById('main-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        // PENTING: Hapus ID dari FormData jika kosong (agar Django tidak menganggap ini update id="")
+        if (!formData.get('id')) {
+            formData.delete('id');
+        }
+
+        try {
+            const response = await fetch("{% url 'administrasi:api_expense_upsert' %}", {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'},
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                closeModal();
+                loadSummary();
+                loadExpenses();
+            } else {
+                alert("Kesalahan: " + result.message);
+            }
+        } catch (error) {
+            alert("Gagal terhubung ke server. Pastikan Django sedang berjalan.");
+        }
+    };
+
+    function openModal() {
+        const form = document.getElementById('main-form');
+        form.reset();
+        document.getElementById('f-id').value = ""; // Pastikan ID kosong untuk data baru
+        document.getElementById('modal-title').innerText = "Catat Pengeluaran";
+        document.getElementById('f-date').valueAsDate = new Date(); // Default tanggal hari ini
+        document.getElementById('modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('modal').classList.add('hidden');
+    }
+
+    async function del(m, id) {
+        if(confirm('Hapus permanen pengeluaran ini?')) {
+            const res = await fetch(`/administrasi/api/delete/${m}/${id}/`, {
+                method: 'POST', 
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            });
+            if(res.ok) {
+                loadSummary(); 
+                loadExpenses();
+            }
+        }
+    }
+
+    // Jalankan saat halaman pertama kali dimuat
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSummary();
+        loadExpenses();
+    });
+</script>
+{% endblock %}

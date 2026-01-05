@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block title %}Manajemen Projek Selesai{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Projek Selesai</h2>
+            <p class="text-sm text-gray-500">Kelola daftar logo perusahaan dan detail projek yang telah diselesaikan</p>
+        </div>
+        <button onclick="openProjectModal()" class="bg-black text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-800 transition shadow-lg shadow-gray-200">
+            <i class="fas fa-plus mr-2"></i> Tambah Projek
+        </button>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-100">
+                    <th class="p-4 text-xs font-bold uppercase text-gray-500">Logo</th>
+                    <th class="p-4 text-xs font-bold uppercase text-gray-500">Nama Projek/Klien</th>
+                    <th class="p-4 text-xs font-bold uppercase text-gray-500 text-center">Urutan</th>
+                    <th class="p-4 text-xs font-bold uppercase text-gray-500 text-center">Status</th>
+                    <th class="p-4 text-xs font-bold uppercase text-gray-500 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="project-table-body" class="divide-y divide-gray-50">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="project-modal" class="fixed inset-0 hidden bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-gray-50 px-8 py-4 border-b">
+            <h3 id="modal-title" class="text-lg font-bold text-gray-800">Tambah Projek</h3>
+        </div>
+        <form id="project-form" class="p-8 space-y-4" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="id" id="project-id">
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Projek / Perusahaan</label>
+                <input type="text" name="title" id="project-title" required 
+                    class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-black outline-none bg-gray-50">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Deskripsi (Opsi: Tampil di Modal)</label>
+                <textarea name="description" id="project-desc" rows="3"
+                    class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-black outline-none bg-gray-50"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Urutan Tampil</label>
+                    <input type="number" name="order" id="project-order" value="0"
+                        class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-black outline-none bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">URL (Opsional)</label>
+                    <input type="url" name="url" id="project-url" placeholder="https://..."
+                        class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-black outline-none bg-gray-50">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 text-indigo-600">Logo Perusahaan</label>
+                <div class="relative border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-indigo-400 transition cursor-pointer">
+                    <input type="file" name="logo" id="project-file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <i class="fas fa-image text-2xl text-gray-300 mb-2"></i>
+                    <p id="file-label" class="text-xs text-gray-400">Klik untuk upload Logo</p>
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closeProjectModal()" class="flex-1 px-4 py-2.5 border rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition">Batal</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition">Simpan Projek</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Pastikan variabel ini tersedia
+    const projectTableBody = document.getElementById('project-table-body');
+    const projectForm = document.getElementById('project-form');
+    const projectModal = document.getElementById('project-modal');
+    const fileInput = document.getElementById('project-file');
+    const fileLabel = document.getElementById('file-label');
+
+    // Menangani tampilan nama file
+    fileInput.addEventListener('change', (e) => {
+        if(e.target.files.length > 0) fileLabel.innerText = e.target.files[0].name;
+    });
+
+    async function loadProjects() {
+        // 1. Hancurkan DataTable jika instance sudah ada
+        if ($.fn.DataTable.isDataTable('#project-table')) {
+            $('#project-table').DataTable().destroy();
+        }
+
+        try {
+            const response = await fetch("{% url 'landingpage:get_projects' %}");
+            const result = await response.json();
+            
+            // 2. Isi Body Tabel
+            projectTableBody.innerHTML = result.projects.map(p => `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="p-4">
+                        <img src="${p.logo_url}" class="h-8 w-auto grayscale hover:grayscale-0 transition-all duration-300 object-contain">
+                    </td>
+                    <td class="p-4 font-semibold text-gray-800">${p.title}</td>
+                    <td class="p-4 text-center font-mono text-gray-500">${p.order}</td>
+                    <td class="p-4 text-center">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-green-50 text-green-600 border border-green-100">Aktif</span>
+                    </td>
+                    <td class="p-4 text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick='editProject(${JSON.stringify(p)})' class="p-2 text-gray-400 hover:text-black transition">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button onclick="deleteProject(${p.id})" class="p-2 text-gray-400 hover:text-red-600 transition">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            // 3. Inisialisasi Ulang DataTable
+            $('#project-table').DataTable({
+                "pageLength": 10,
+                "ordering": true,
+                "responsive": true,
+                "autoWidth": false,
+                "language": {
+                    "search": "Cari Projek:",
+                    "lengthMenu": "Tampilkan _MENU_ data",
+                    "zeroRecords": "Data tidak ditemukan",
+                    "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                    "paginate": {
+                        "next": "Lanjut",
+                        "previous": "Kembali"
+                    }
+                }
+            });
+        } catch (err) {
+            console.error("Gagal memuat data:", err);
+        }
+    }
+
+    // Submit Form (Add & Edit)
+    projectForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(projectForm);
+        const id = document.getElementById('project-id').value;
+        
+        let url = id ? "{% url 'landingpage:project_edit' 0 %}".replace('0', id) : "{% url 'landingpage:project_add' %}";
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            });
+
+            const resData = await response.json();
+            if (response.ok) {
+                closeProjectModal();
+                await loadProjects(); // Tunggu load selesai
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: resData.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error(resData.message);
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: error.message || 'Terjadi kesalahan sistem.'
+            });
+        }
+    };
+
+    // Fungsi-fungsi Modal
+    function openProjectModal() {
+        document.getElementById('modal-title').innerText = "Tambah Projek Baru";
+        projectForm.reset();
+        document.getElementById('project-id').value = "";
+        fileLabel.innerText = "Klik atau upload Logo";
+        projectModal.classList.remove('hidden');
+    }
+
+    function editProject(p) {
+        document.getElementById('modal-title').innerText = "Edit Projek";
+        document.getElementById('project-id').value = p.id;
+        document.getElementById('project-title').value = p.title;
+        document.getElementById('project-desc').value = p.description;
+        document.getElementById('project-order').value = p.order;
+        document.getElementById('project-url').value = p.url;
+        fileLabel.innerText = "Klik untuk mengganti logo (opsional)";
+        projectModal.classList.remove('hidden');
+    }
+
+    function closeProjectModal() { projectModal.classList.add('hidden'); }
+
+    // Hapus dengan SweetAlert
+    async function deleteProject(id) {
+        Swal.fire({
+            title: 'Hapus Projek?',
+            text: "Data yang dihapus tidak dapat dikembalikan!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#000',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const url = "{% url 'landingpage:project_delete' 0 %}".replace('0', id);
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': '{{ csrf_token }}'}
+                });
+                
+                if(res.ok) {
+                    await loadProjects();
+                    Swal.fire('Terhapus!', 'Projek berhasil dihapus.', 'success');
+                }
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadProjects);
+</script>
+{% endblock %}

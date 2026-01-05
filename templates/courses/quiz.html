@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Kelola Quiz - {{ module.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6 flex justify-between items-end">
+        <div>
+            <a href="{% url 'courses:course_curriculum' module.course.id %}" class="text-blue-600 text-sm">← Kembali ke Kurikulum</a>
+            <h1 class="text-2xl font-bold text-gray-800">Quiz: {{ quiz.title }}</h1>
+            <p class="text-gray-500 text-sm">Passing Score: {{ quiz.passing_score }}%</p>
+        </div>
+        <button onclick="addQuestionPrompt()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+            <i class="fas fa-plus mr-2"></i> Tambah Pertanyaan
+        </button>
+        <a href="{% url 'courses:quiz_take' quiz.id %}" target="_blank" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition">
+            <i class="fas fa-eye mr-2"></i> Preview Quiz
+        </a>
+    </div>
+
+    <div id="quiz-container" class="space-y-6">
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const quizId = "{{ quiz.id }}";
+
+    async function loadQuizData() {
+        const response = await fetch("{% url 'courses:api_quiz_data' quiz.id %}");
+        const data = await response.json();
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = '';
+
+        data.questions.forEach((q, index) => {
+            let answersHtml = '';
+            q.answers.forEach(a => {
+                answersHtml += `
+                    <div class="flex items-center justify-between p-2 ${a.is_correct ? 'bg-green-50 border-green-200' : 'bg-gray-50'} border rounded-lg mb-2 text-sm">
+                        <span>${a.text} ${a.is_correct ? '<i class="fas fa-check-circle text-green-500 ml-2"></i>' : ''}</span>
+                    </div>`;
+            });
+
+            container.innerHTML += `
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start mb-4">
+                        <h4 class="font-bold text-gray-800">Q${index + 1}: ${q.text}</h4>
+                        <div class="flex gap-2">
+                            <button onclick="addAnswerPrompt(${q.id})" class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">Add Answer</button>
+                            <button onclick="deleteQuestion(${q.id})" class="text-xs text-red-500"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        ${answersHtml || '<p class="text-xs text-gray-400 italic">Belum ada pilihan jawaban.</p>'}
+                    </div>
+                </div>`;
+        });
+    }
+
+    async function addQuestionPrompt() {
+        const { value: text } = await Swal.fire({
+            title: 'Pertanyaan Baru',
+            input: 'textarea',
+            inputPlaceholder: 'Tuliskan pertanyaan...',
+            showCancelButton: true
+        });
+
+        if (text) {
+            showLoading();
+            const fd = new FormData();
+            fd.append('text', text);
+            const url = "{% url 'courses:api_question_create' quiz.id %}";
+            await fetch(url, { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd });
+            loadQuizData();
+            showSuccess('Pertanyaan disimpan');
+        }
+    }
+
+    async function addAnswerPrompt(qId) {
+        const { value: formValues } = await Swal.fire({
+            title: 'Tambah Jawaban',
+            html:
+                '<input id="swal-ans-text" class="swal2-input" placeholder="Teks Jawaban">' +
+                '<div class="mt-4"><input type="checkbox" id="swal-ans-correct"> <label>Jawaban Benar</label></div>',
+            focusConfirm: false,
+            preConfirm: () => {
+                return [
+                    document.getElementById('swal-ans-text').value,
+                    document.getElementById('swal-ans-correct').checked
+                ]
+            }
+        });
+
+        if (formValues && formValues[0]) {
+            showLoading();
+            const fd = new FormData();
+            fd.append('text', formValues[0]);
+            fd.append('is_correct', formValues[1]);
+            const url = "{% url 'courses:api_answer_add' 0 %}".replace('0', qId);
+            await fetch(url, { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd });
+            loadQuizData();
+            showSuccess('Jawaban disimpan');
+        }
+    }
+
+    async function deleteQuestion(id) {
+        if ((await confirmDelete()).isConfirmed) {
+            const url = "{% url 'courses:api_question_delete' 0 %}".replace('0', id);
+            await fetch(url, { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')} });
+            loadQuizData();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadQuizData);
+</script>
+{% endblock %}

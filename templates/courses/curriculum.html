@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block title %}Kurikulum - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <a href="{% url 'courses:course_list' %}" class="text-blue-600 text-sm mb-2 inline-block">← Kembali ke Kursus</a>
+            <h1 class="text-3xl font-bold text-gray-800">{{ course.title }}</h1>
+            <p class="text-gray-500 text-sm">Kelola modul dan materi pembelajaran</p>
+        </div>
+        <button onclick="openModuleModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            <i class="fas fa-plus mr-2"></i> Tambah Modul
+        </button>
+    </div>
+
+    <div id="curriculum-container" class="space-y-4">
+        </div>
+</div>
+
+<div id="module-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <h3 class="text-xl font-bold mb-4">Tambah Modul Baru</h3>
+        <form id="module-form">
+            <div class="space-y-4">
+                <input type="text" id="module-title" placeholder="Nama Modul (Contoh: Pengenalan HTML)" required class="w-full px-4 py-2 border rounded-lg">
+                <input type="number" id="module-order" placeholder="Urutan (0, 1, 2...)" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+            <div class="mt-6 flex gap-2">
+                <button type="button" onclick="closeModuleModal()" class="flex-1 px-4 py-2 bg-gray-100 rounded-lg">Batal</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="lesson-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+        <h3 class="text-xl font-bold mb-4">Tambah Materi</h3>
+        <form id="lesson-form">
+            <input type="hidden" id="target-module-id">
+            <div class="space-y-4">
+                <input type="text" id="lesson-title" name="title" placeholder="Judul Materi" required class="w-full px-4 py-2 border rounded-lg">
+                <input type="url" id="lesson-video" name="video_url" placeholder="YouTube URL" class="w-full px-4 py-2 border rounded-lg">
+                <textarea id="lesson-content" name="content" placeholder="Materi Teks" rows="3" class="w-full px-4 py-2 border rounded-lg"></textarea>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="lesson-duration" name="duration_minutes" placeholder="Durasi (menit)" class="w-full px-4 py-2 border rounded-lg">
+                    <input type="number" id="lesson-order" name="order" placeholder="Urutan" class="w-full px-4 py-2 border rounded-lg">
+                </div>
+            </div>
+            <div class="mt-6 flex gap-2">
+                <button type="button" onclick="closeLessonModal()" class="flex-1 px-4 py-2 bg-gray-100 rounded-lg">Batal</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg">Simpan Materi</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const courseId = "{{ course.id }}";
+    const container = document.getElementById('curriculum-container');
+
+    // --- 1. LOAD DATA ---
+    async function loadCurriculum() {
+        try {
+            // Menggunakan Named URL untuk List Modul
+            const url = "{% url 'courses:api_module_list' course.id %}";
+            const response = await fetch(url);
+            const result = await response.json();
+            
+            container.innerHTML = '';
+            
+            if (result.data.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 bg-gray-50 rounded-xl border-2 border-dashed">
+                        <p class="text-gray-500">Belum ada kurikulum. Silakan tambah modul pertama Anda.</p>
+                    </div>`;
+                return;
+            }
+
+            result.data.forEach(mod => {
+                let lessonHtml = '';
+                mod.lessons.forEach(les => {
+                    lessonHtml += `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg mb-2 hover:border-blue-200 transition">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-play-circle text-blue-500"></i>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-semibold text-gray-800">${les.title}</span>
+                                    <span class="text-xs text-gray-500">${les.duration_minutes} Menit</span>
+                                </div>
+                            </div>
+                            <button onclick="deleteLesson(${les.id})" class="text-red-400 hover:text-red-600 transition">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>`;
+                });
+
+                const quizUrl = "{% url 'courses:quiz_manager' 0 %}".replace('0', mod.id);
+                const projectUrl = "{% url 'courses:project_manager' 0 %}".replace('0', mod.id);
+
+                container.innerHTML += `
+                    <div class="bg-white border rounded-xl overflow-hidden shadow-sm mb-4">
+                        <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <span class="bg-blue-600 text-white w-6 h-6 flex items-center justify-center rounded text-xs font-bold">${mod.order}</span>
+                                <h4 class="font-bold text-gray-800">${mod.title}</h4>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="${quizUrl}" class="text-xs bg-purple-100 text-purple-600 px-3 py-1.5 rounded-md hover:bg-purple-200 transition">
+                                    <i class="fas fa-question-circle mr-1"></i> Quiz
+                                </a>
+                                
+                                <a href="${projectUrl}" class="text-xs bg-orange-100 text-orange-600 px-3 py-1.5 rounded-md hover:bg-orange-200 transition">
+                                    <i class="fas fa-project-diagram mr-1"></i> Project
+                                </a>
+                                
+                            
+                                <button onclick="openLessonModal(${mod.id})" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition">
+                                    <i class="fas fa-plus mr-1"></i> Materi
+                                </button>
+                                <button onclick="deleteModule(${mod.id})" class="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-md hover:bg-red-100 transition">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            ${lessonHtml || '<p class="text-xs text-gray-400 italic text-center py-2">Belum ada materi di modul ini.</p>'}
+                        </div>
+                    </div>`;
+            });
+        } catch (e) {
+            showError('Gagal memuat kurikulum.');
+        }
+    }
+
+    // --- 2. LOGIC MODUL ---
+    function openModuleModal() { 
+        document.getElementById('module-form').reset();
+        document.getElementById('module-modal').classList.remove('hidden'); 
+    }
+    function closeModuleModal() { document.getElementById('module-modal').classList.add('hidden'); }
+
+    document.getElementById('module-form').onsubmit = async (e) => {
+        e.preventDefault();
+        showLoading('Menyimpan modul...');
+
+        const formData = new FormData();
+        formData.append('title', document.getElementById('module-title').value);
+        formData.append('order', document.getElementById('module-order').value);
+
+        try {
+            const url = "{% url 'courses:api_module_create' course.id %}";
+            const response = await fetch(url, { 
+                method: 'POST', 
+                headers: {'X-CSRFToken': getCookie('csrftoken')}, 
+                body: formData 
+            });
+
+            if (response.ok) { 
+                closeModuleModal(); 
+                loadCurriculum(); 
+                showSuccess('Modul berhasil ditambahkan'); 
+            } else {
+                showError('Gagal menyimpan modul.');
+            }
+        } catch (e) { showError('Terjadi kesalahan jaringan.'); }
+    };
+
+    // --- 3. LOGIC LESSON ---
+    const lessonModal = document.getElementById('lesson-modal');
+    function openLessonModal(moduleId) {
+        document.getElementById('lesson-form').reset();
+        document.getElementById('target-module-id').value = moduleId;
+        lessonModal.classList.remove('hidden');
+    }
+    function closeLessonModal() { lessonModal.classList.add('hidden'); }
+
+    document.getElementById('lesson-form').onsubmit = async (e) => {
+        e.preventDefault();
+        showLoading('Menyimpan materi...');
+
+        const moduleId = document.getElementById('target-module-id').value;
+        const formData = new FormData(e.target);
+
+        // Placeholder trick untuk Lesson Create
+        const url = "{% url 'courses:api_lesson_create' 0 %}".replace('0', moduleId);
+
+        try {
+            const response = await fetch(url, { 
+                method: 'POST', 
+                headers: {'X-CSRFToken': getCookie('csrftoken')}, 
+                body: formData 
+            });
+
+            if (response.ok) { 
+                closeLessonModal(); 
+                loadCurriculum(); 
+                showSuccess('Materi berhasil ditambahkan'); 
+            } else {
+                showError('Gagal menyimpan materi.');
+            }
+        } catch (e) { showError('Terjadi kesalahan koneksi.'); }
+    };
+
+    // --- 4. DELETE FUNCTIONS ---
+    async function deleteModule(id) {
+        const res = await confirmDelete('Hapus Modul?', 'Menghapus modul akan menghapus semua materi di dalamnya!');
+        if (res.isConfirmed) {
+            showLoading('Menghapus modul...');
+            const url = "{% url 'courses:api_module_delete' 0 %}".replace('0', id);
+            try {
+                const response = await fetch(url, { 
+                    method: 'POST', 
+                    headers: {'X-CSRFToken': getCookie('csrftoken')} 
+                });
+                if (response.ok) {
+                    loadCurriculum();
+                    showSuccess('Modul berhasil dihapus');
+                } else { showError('Gagal menghapus modul.'); }
+            } catch (e) { showError('Kesalahan jaringan.'); }
+        }
+    }
+
+    async function deleteLesson(id) {
+        const res = await confirmDelete('Hapus Materi?', 'Apakah Anda yakin ingin menghapus materi ini?');
+        if (res.isConfirmed) {
+            showLoading('Menghapus materi...');
+            const url = "{% url 'courses:api_lesson_delete' 0 %}".replace('0', id);
+            try {
+                const response = await fetch(url, { 
+                    method: 'POST', 
+                    headers: {'X-CSRFToken': getCookie('csrftoken')} 
+                });
+                if (response.ok) {
+                    loadCurriculum();
+                    showSuccess('Materi berhasil dihapus');
+                } else { showError('Gagal menghapus materi.'); }
+            } catch (e) { showError('Kesalahan jaringan.'); }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadCurriculum);
+</script>
+{% endblock %}

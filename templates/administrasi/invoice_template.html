@@ -1,0 +1,173 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice - {{ invoice.correspondence.formatted_number }}</title>
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; line-height: 1.5; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+        .col-left { width: 60%; }
+        .col-right { width: 35%; text-align: right; }
+        .brand-container { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
+        .brand-logo { height: 45px; width: auto; object-fit: contain; }
+        .ttd { height: 70px; width: auto; object-fit: contain; }
+        
+        .brand-name { font-size: 20px; font-weight: bold; color: #000; margin: 0; }
+        .company-info { font-size: 10px; color: #555; margin-top: 5px; }
+        
+        .invoice-title { font-size: 28px; font-weight: 900; color: #000; margin: 0; letter-spacing: 2px; }
+        .meta-table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+        .meta-table td { font-size: 11px; padding: 2px 2px; }
+        
+        .section-title { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 5px; }
+        .customer-info { margin-top: 20px; }
+
+        table.main-table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+        table.main-table th { background: #f5f5f5; padding: 12px; border-bottom: 2px solid #000; text-align: left; font-size: 11px; }
+        table.main-table td { padding: 12px; border-bottom: 1px solid #eee; }
+        
+        .totals-container { display: flex; justify-content: space-between; margin-top: 20px; }
+        .payment-info { width: 50%; }
+        .calculation { width: 40%; }
+        
+        .calc-row { display: flex; justify-content: space-between; padding: 4px 0; }
+        .calc-row.grand-total { border-top: 1px solid #000; margin-top: 10px; padding-top: 10px; font-weight: bold; font-size: 14px; }
+        .calc-row.highlight { color: #d32f2f; }
+
+        .signature { margin-top: 60px; text-align: right; }
+        
+        
+        @media print {
+            .no-print { display: none; }
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print" style="margin-bottom: 20px;">
+        <a href="javascript:window.close();" style="padding: 10px 20px; cursor: pointer; background: #f5f5f5; color: #000; border: none; text-decoration: none; border-radius: 5px;margin-right: 10px;">
+            ← Tutup Tab
+        </a>
+        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer; background: #000; color: #fff; border: none; border-radius: 5px;">Cetak Invoice</button>
+    </div>
+
+    <div class="header">
+        <div class="col-left">
+            <div class="brand-container">
+                <img src="{% static 'images/diginus.png' %}" alt="DIGINUS" class="brand-logo">
+                
+                {% comment %} <div>
+                    <h1 class="brand-name" style="margin: 0; line-height: 1;">CV. CENDIKA DIGITAL NUSANTARA</h1>
+                </div> {% endcomment %}
+            </div>
+            <div class="company-info">
+                Kawatuna, Kecamatan Mantikulore, Kota Palu, Sulawesi Tengah.<br>
+                Kode pos: 94233 | Telp. 0859106780884
+            </div>
+            
+            <div class="customer-info">
+                <div class="section-title">Tagihan Kepada:</div>
+                <div style="font-size: 14px; font-weight: bold;">{{ invoice.correspondence.customer.name }}</div>
+                <div>{{ invoice.correspondence.customer.company|default:"-" }}</div>
+                <div style="width: 250px;">{{ invoice.correspondence.customer.address }}</div>
+                <div>{{ invoice.correspondence.customer.whatsapp }}</div>
+            </div>
+        </div>
+
+        <div class="col-right">
+            <h2 class="invoice-title">INVOICE</h2>
+            <table class="meta-table">
+                <tr>
+                    <td>Tanggal</td>
+                    <td>: </td>
+                    <td style="font-weight: bold; text-align: left;">{{ invoice.correspondence.created_at|date:"d F Y" }}</td>
+                </tr>
+                <tr>
+                    <td>No. Invoice</td>
+                    <td>: </td>
+                    <td style="font-weight: bold;text-align: left;">{{ invoice.correspondence.formatted_number }}</td>
+                </tr>
+                <tr>
+                    <td>Jenis</td>
+                    <td>: </td>
+                    <td style="font-weight: bold;text-align: left;">{{ invoice.invoice_type }}</td>
+                </tr>
+                <tr>
+                    <td>Jatuh Tempo</td>
+                    <td>:</td>
+                    <td style="font-weight: bold;text-align: left;">{{ invoice.due_date|date:"d F Y"|default:"-" }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <table class="main-table">
+        <thead>
+            <tr>
+                <th>Deskripsi Item</th>
+                <th style="text-align: center;">Jumlah</th>
+                <th style="text-align: right;">Harga Satuan</th>
+                <th style="text-align: right;">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in invoice.items.all %}
+            <tr>
+                <td>{{ item.description }}</td>
+                <td style="text-align: center;">{{ item.quantity }}</td>
+                <td style="text-align: right;">Rp {{ item.unit_price|intcomma }}</td>
+                <td style="text-align: right;">Rp {{ item.subtotal|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals-container">
+        <div class="payment-info">
+            <div class="section-title">Pembayaran diajukan kepada:</div>
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 10px;">
+                <table style="width: 100%;">
+                    <tr><td>Bank</td><td>: <strong>BNI</strong></td></tr>
+                    <tr><td>Atas Nama</td><td>: <strong>CV Cendika Digital Nusantara</strong></td></tr>
+                    <tr><td>No Rekening</td><td>: <strong>000000</strong></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="calculation">
+            <div class="calc-row">
+                <span>Subtotal (Net)</span>
+                <span>Rp {{ invoice.subtotal|intcomma }}</span>
+            </div>
+            <div class="calc-row">
+                <span>PPN (11%)</span>
+                <span>Rp {{ invoice.tax_amount|intcomma }}</span>
+            </div>
+            <div class="calc-row grand-total">
+                <span>TOTAL TAGIHAN</span>
+                <span>Rp {{ invoice.grand_total|intcomma }}</span>
+            </div>
+            <div class="calc-row" style="color: #4caf50;">
+                <span>Sudah Dibayar</span>
+                <span>- Rp {{ invoice.paid_amount|intcomma }}</span>
+            </div>
+            <div class="calc-row highlight" style="font-weight: bold; border-top: 1px dashed #ccc; margin-top: 5px; padding-top: 5px;">
+                <span>SISA PEMBAYARAN</span>
+                <span>Rp {{ invoice.remaining_balance|intcomma }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="signature">
+        <p style="margin: 0;">Palu, {{ invoice.correspondence.created_at|date:"d F Y" }}</p>
+        <p style="margin: 0;"><strong>Direktur,<br>CV. Cendika Digital Nusantara</strong></p>
+        <img src="{% static 'images/ttd.png' %}" alt="ttd" class="ttd">
+        <p style="margin: 0;"><strong>Abdul Rohim, S.Mat.</strong></p>
+    </div>
+
+</body>
+</html>

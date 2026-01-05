@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded-xl shadow-sm">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold">Database Pelanggan</h2>
+        <button onclick="openModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Tambah</button>
+    </div>
+    <table class="w-full text-left">
+        <thead class="bg-gray-50 uppercase text-xs font-bold text-gray-500">
+            <tr>
+                <th class="p-4">Nama / Perusahaan</th>
+                <th class="p-4">WhatsApp</th>
+                <th class="p-4">Email</th>
+                <th class="p-4 text-center">Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
+</div>
+
+<div id="modal" class="fixed inset-0 hidden bg-black/50 flex items-center justify-center">
+    <form id="main-form" class="bg-white p-8 rounded-2xl w-full max-w-md">
+        <input type="hidden" name="id" id="f-id">
+        <h3 class="text-xl font-bold mb-4">Form Pelanggan</h3>
+        <div class="space-y-4">
+            <input type="text" name="name" id="f-name" placeholder="Nama Lengkap" class="w-full border p-2 rounded" required>
+            <input type="text" name="company" id="f-company" placeholder="Perusahaan" class="w-full border p-2 rounded">
+            <input type="text" name="whatsapp" id="f-whatsapp" placeholder="62812..." class="w-full border p-2 rounded">
+            <input type="email" name="email" id="f-email" placeholder="Email" class="w-full border p-2 rounded">
+            <textarea name="address" id="f-address" placeholder="Alamat" class="w-full border p-2 rounded"></textarea>
+        </div>
+        <div class="flex gap-2 mt-6">
+            <button type="button" onclick="closeModal()" class="flex-1 border p-2 rounded">Batal</button>
+            <button type="submit" class="flex-1 bg-blue-600 text-white p-2 rounded">Simpan</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    async function loadData() {
+        const res = await fetch("{% url 'administrasi:api_customer_data' %}");
+        const json = await res.json();
+        const body = document.getElementById('table-body');
+        body.innerHTML = json.data.map(c => `
+            <tr class="border-b">
+                <td class="p-4"><b>${c.name}</b><br><small>${c.company}</small></td>
+                <td class="p-4">${c.whatsapp}</td>
+                <td class="p-4">${c.email}</td>
+                <td class="p-4 text-center">
+                    <button onclick='edit(${JSON.stringify(c)})' class="text-blue-600 mr-2"><i class="fa fa-edit"></i></button>
+                    <button onclick="del('customer', ${c.id})" class="text-red-600"><i class="fa fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    document.getElementById('main-form').onsubmit = async (e) => {
+        e.preventDefault();
+        await fetch("{% url 'administrasi:api_customer_upsert' %}", {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            body: new FormData(e.target)
+        });
+        closeModal(); loadData();
+    };
+
+    function edit(c) {
+        document.getElementById('f-id').value = c.id;
+        document.getElementById('f-name').value = c.name;
+        document.getElementById('f-company').value = c.company;
+        document.getElementById('f-whatsapp').value = c.whatsapp;
+        document.getElementById('f-email').value = c.email;
+        document.getElementById('f-address').value = c.address;
+        document.getElementById('modal').classList.remove('hidden');
+    }
+
+    function openModal() { document.getElementById('main-form').reset(); document.getElementById('modal').classList.remove('hidden'); }
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+    async function del(m, id) { if(confirm('Hapus?')) { await fetch(`/administrasi/api/delete/${m}/${id}/`, {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}}); loadData(); } }
+    loadData();
+</script>
+{% endblock %}

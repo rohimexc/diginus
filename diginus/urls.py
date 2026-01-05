@@ -9,6 +9,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('landingpage.urls')),
     path('program/', include('program.urls')),
+    path('courses/', include('courses.urls')),
+    path('administrasi/', include('administrasi.urls')),
+    path('pengguna/', include('pengguna.urls')),
+    path('accounts/', include('allauth.urls')),
 ]
 
 # Tambahkan ini hanya saat development

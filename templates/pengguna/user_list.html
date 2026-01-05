@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Daftar Pengguna</h1>
+        <button onclick="addUser()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 shadow-lg transition">
+            <i class="fa-solid fa-user-plus mr-2"></i> Tambah User
+        </button>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-md overflow-hidden">
+    <table class="datatable display responsive nowrap w-full text-sm text-left">
+            <thead class="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+                <tr>
+                    <th class="px-6 py-3 text-left">Nama</th>
+                    <th class="px-6 py-3 text-left">Email</th>
+                    <th class="px-6 py-3 text-left">Roles</th>
+                    <th class="px-6 py-3 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="user-table-body" class="bg-white divide-y divide-gray-200">
+                {% for u in users %}
+                <tr id="user-row-{{ u.id }}">
+                    <td class="px-6 py-4 whitespace-nowrap font-medium">{{ u.first_name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ u.email }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% for g in u.groups.all %}
+                        <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase mr-1 border border-indigo-200">
+                            {{ g.name }}
+                        </span>
+                        {% empty %}
+                        <span class="text-gray-400 text-xs italic">Tanpa Role</span>
+                        {% endfor %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <button onclick="editUser({{ u.id }})" class="text-indigo-600 hover:text-indigo-900 mx-2 transition">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteUser({{ u.id }})" class="text-red-600 hover:text-red-900 mx-2 transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[60] p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl transform transition-all">
+        <h3 id="modalTitle" class="text-2xl font-bold mb-6 text-gray-800 border-b pb-4">Tambah User</h3>
+        <form id="userForm">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" id="userId">
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
+                    <input type="text" name="first_name" id="userName" class="w-full border-gray-300 border p-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                    <input type="email" name="email" id="userEmail" class="w-full border-gray-300 border p-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                    <input type="password" name="password" id="userPassword" placeholder="Kosongkan jika tidak ingin ganti" class="w-full border-gray-300 border p-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-gray-700 mb-3 italic text-indigo-600">Pilih Role Akses:</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% for g in groups %}
+                        <label class="flex items-center p-2 border rounded-lg hover:bg-gray-50 cursor-pointer transition">
+                            <input type="checkbox" name="roles" value="{{ g.name }}" class="role-checkbox h-4 w-4 text-indigo-600 rounded">
+                            <span class="ml-2 text-sm text-gray-700 font-medium">{{ g.name }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end mt-8 gap-3">
+                <button type="button" onclick="closeModal()" class="px-5 py-2.5 text-gray-500 font-semibold hover:bg-gray-100 rounded-xl transition">Batal</button>
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-md shadow-indigo-100">Simpan Data</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function addUser() {
+        $('#userForm')[0].reset();
+        $('#userId').val('');
+        $('#modalTitle').text('Tambah User Baru');
+        $('#userModal').removeClass('hidden');
+    }
+
+    function closeModal() {
+        $('#userModal').addClass('hidden');
+    }
+
+    function editUser(id) {
+        $.get(`/pengguna/users/detail/${id}/`, function(data) {
+            $('#userId').val(data.id);
+            $('#userName').val(data.first_name);
+            $('#userEmail').val(data.email);
+            $('#modalTitle').text('Edit Data Pengguna');
+            $('.role-checkbox').prop('checked', false);
+            
+            // Mencentang checkbox berdasarkan role yang ada
+            data.roles.forEach(role => {
+                $(`.role-checkbox[value="${role}"]`).prop('checked', true);
+            });
+            $('#userModal').removeClass('hidden');
+        });
+    }
+
+    $('#userForm').submit(function(e) {
+        e.preventDefault();
+        
+        // Perbaikan: Ambil array roles dengan benar
+        const roles = [];
+        $('.role-checkbox:checked').each(function() {
+            roles.push($(this).val());
+        });
+
+        // Tampilkan loading SweetAlert
+        Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+        $.ajax({
+            url: "{% url 'pengguna:user_save' %}",
+            type: "POST",
+            data: {
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                user_id: $('#userId').val(),
+                first_name: $('#userName').val(),
+                email: $('#userEmail').val(),
+                password: $('#userPassword').val(),
+                roles: roles // Mengirim array
+            },
+            traditional: true, // PENTING: Agar array dikirim sebagai 'roles' bukan 'roles[]'
+            success: function(response) {
+                Swal.fire('Berhasil!', 'Data pengguna telah diperbarui.', 'success').then(() => {
+                    location.reload();
+                });
+            },
+            error: function() {
+                Swal.fire('Error!', 'Terjadi kesalahan sistem.', 'error');
+            }
+        });
+    });
+
+    function deleteUser(id) {
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: "Data user akan dihapus permanen!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post(`/pengguna/users/delete/${id}/`, {csrfmiddlewaretoken: '{{ csrf_token }}'}, function() {
+                    Swal.fire('Dihapus!', 'User berhasil dihapus.', 'success');
+                    $(`#user-row-${id}`).fadeOut();
+                });
+            }
+        });
+    }
+</script>
+{% endblock %}
